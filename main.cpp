@@ -32,27 +32,6 @@ long long nowMs() {
     ).count();
 }
 
-bool detectCycle() {
-    queue<string> q;
-    map<string, int> temp = indeg;
-    int count = 0;
-
-    for (auto &p : temp)
-        if (p.second == 0) q.push(p.first);
-
-    while (!q.empty()) {
-        string u = q.front();
-        q.pop();
-        count++;
-
-        for (string v : graph[u]) {
-            temp[v]--;
-            if (temp[v] == 0) q.push(v);
-        }
-    }
-
-    return count != tasks.size();
-}
 
 void calcCriticalPath() {
     queue<string> q;
@@ -76,54 +55,6 @@ void calcCriticalPath() {
             if (temp[v] == 0)
                 q.push(v);
         }
-    }
-}
-
-void worker(int id, priority_queue<string, vector<string>, Compare>& ready) {
-    while (true) {
-        string cur;
-
-        {
-            unique_lock<mutex> lock(mtx);
-
-            cv.wait(lock, [&]() {
-                return !ready.empty() || finished;
-            });
-
-            if (finished && ready.empty())
-                return;
-
-            cur = ready.top();
-            ready.pop();
-
-            tasks[cur].start = nowMs();
-            cout << "[" << tasks[cur].start << " ms] Worker "
-                 << id << " START " << cur << " - "
-                 << tasks[cur].name << endl;
-        }
-
-        this_thread::sleep_for(chrono::milliseconds(tasks[cur].duration));
-
-        {
-            lock_guard<mutex> lock(mtx);
-
-            tasks[cur].end = nowMs();
-            cout << "[" << tasks[cur].end << " ms] Worker "
-                 << id << " COMPLETE " << cur << endl;
-
-            completed++;
-
-            for (string nxt : graph[cur]) {
-                doneDeps[nxt]++;
-                if (doneDeps[nxt] == indeg[nxt])
-                    ready.push(nxt);
-            }
-
-            if (completed == tasks.size())
-                finished = true;
-        }
-
-        cv.notify_all();
     }
 }
 
