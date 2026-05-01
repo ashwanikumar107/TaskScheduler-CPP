@@ -7,7 +7,7 @@ struct Task {
     string id, name;
     int priority, duration;
     vector<string> deps;
-    long long start = -1, end = -1;
+    long long start = -1;
 };
 
 struct Compare {
